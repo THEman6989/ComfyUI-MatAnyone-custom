@@ -16,6 +16,8 @@ checkpoint/
     matanyone2.pth
 ```
 
+https://github.com/user-attachments/assets/f1805028-92ed-40b7-8bf5-85f1a3ddbe25
+
 ## Workflow
 
 The extension now includes the `MatAnyone2Video` node, which runs the improved MatAnyoneV2 model for higher-quality and more robust video matting.
@@ -61,5 +63,5 @@ Additional Inputs for V2:
    author    = {Yang, Peiqing and Zhou, Shangchen and Hao, Kai and Tao, Qingyi},
    booktitle = {CVPR},
    year      = {2026}
-   }
+}
 ```
