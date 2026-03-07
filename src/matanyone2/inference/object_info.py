@@ -1,0 +1,28 @@
+"""
+Object metadata for MatAnyone2 inference.
+"""
+
+
+class ObjectInfo:
+    """Stores meta information for an object."""
+
+    def __init__(self, id: int):
+        self.id = id
+        self.poke_count = 0
+
+    def poke(self) -> None:
+        self.poke_count += 1
+
+    def unpoke(self) -> None:
+        self.poke_count = 0
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        if type(other) == int:
+            return self.id == other
+        return self.id == other.id
+
+    def __repr__(self):
+        return "(ID: %s)" % self.id

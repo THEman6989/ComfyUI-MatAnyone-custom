@@ -1,0 +1,33 @@
+defaults:
+  - _self_
+  - model: base
+  - override hydra/job_logging: custom-no-rank.yaml
+
+hydra:
+  run:
+    dir: ../output/${exp_id}/${dataset}
+  output_subdir: ${now:%Y-%m-%d_%H-%M-%S}-hydra
+
+amp: False
+weights: pretrained_models/matanyone2.pth
+output_dir: null
+flip_aug: False
+max_internal_size: -1
+save_all: True
+use_all_masks: False
+use_long_term: False
+mem_every: 5
+max_mem_frames: 5
+long_term:
+  count_usage: True
+  max_mem_frames: 10
+  min_mem_frames: 5
+  num_prototypes: 128
+  max_num_tokens: 10000
+  buffer_tokens: 2000
+top_k: 30
+stagger_updates: 5
+chunk_size: -1
+save_scores: False
+save_aux: False
+visualize: False

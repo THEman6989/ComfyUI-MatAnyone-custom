@@ -18,7 +18,12 @@ from .mat_anyone import (
     get_matanyone_model,
     inference_matanyone,
 )
+from .mat_anyone2 import (
+    get_matanyone2_model_cached,
+    inference_matanyone2,
+)
 from .src.core.inference_core import InferenceCore
+from .src.matanyone2.inference.inference_core import InferenceCore as InferenceCore2
 
 
 class MatAnyoneVideo:
@@ -80,6 +85,91 @@ class MatAnyoneVideo:
             # T H W C
             src_video_hwc = src_video.permute(0, 2, 3, 1).to(out_mask_rgb.device)
             # x H W C -> T H W C , repeat batch to match video frames
+            solid_color_batched = solid_color.repeat(
+                src_video_hwc.shape[0], 1, 1, 1
+            ).to(out_mask_rgb.device)
+            gb = out_mask_rgb * src_video_hwc + (1 - out_mask_rgb) * solid_color_batched
+
+        return (
+            out_mask_rgb,
+            gb,
+        )
+
+
+class MatAnyone2Video:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "src_video": ("IMAGE",),
+                "mask_frame": (
+                    "INT",
+                    {"default": 0, "min": 0, "step": 1},
+                ),
+                "n_warmup": (
+                    "INT",
+                    {"default": 10, "min": 1, "step": 1},
+                ),
+            },
+            "optional": {
+                "foreground_mask": ("IMAGE",),
+                "foreground_MASK": ("MASK",),
+                "solid_color": ("IMAGE",),
+                "r_erode": (
+                    "INT",
+                    {"default": 0, "min": 0, "step": 1},
+                ),
+                "r_dilate": (
+                    "INT",
+                    {"default": 0, "min": 0, "step": 1},
+                ),
+            },
+        }
+
+    RETURN_TYPES = (
+        "IMAGE",
+        "IMAGE",
+    )
+    RETURN_NAMES = (
+        "matte",
+        "green_screen",
+    )
+    FUNCTION = "process"
+    CATEGORY = "MatAnyone"
+
+    def process(
+        self,
+        src_video: torch.Tensor,
+        mask_frame: int,
+        n_warmup: int,
+        foreground_mask: torch.Tensor | None = None,
+        foreground_MASK: torch.Tensor | None = None,
+        solid_color: torch.Tensor | None = None,
+        r_erode: int = 0,
+        r_dilate: int = 0,
+    ):
+        mask = get_mask(foreground_mask, foreground_MASK)
+        src_video = src_video.permute(0, 3, 1, 2)  # T C H W RGB, [0, 1]
+
+        matanyone2 = get_matanyone2_model_cached()
+        processor = InferenceCore2(matanyone2, cfg=matanyone2.cfg)
+        phas = inference_matanyone2(
+            src_video,
+            mask,
+            processor,
+            mask_frame=mask_frame,
+            n_warmup=n_warmup,
+            r_erode=r_erode,
+            r_dilate=r_dilate,
+        )
+        out_mask = torch.cat(phas).permute(0, 2, 3, 1)  # T H W 1 -> T H W C
+        out_mask_rgb = out_mask.repeat(1, 1, 1, 3)
+
+        gb = torch.empty(
+            0, out_mask_rgb.shape[1], out_mask_rgb.shape[2], out_mask_rgb.shape[3]
+        )
+        if solid_color is not None:
+            src_video_hwc = src_video.permute(0, 2, 3, 1).to(out_mask_rgb.device)
             solid_color_batched = solid_color.repeat(
                 src_video_hwc.shape[0], 1, 1, 1
             ).to(out_mask_rgb.device)
