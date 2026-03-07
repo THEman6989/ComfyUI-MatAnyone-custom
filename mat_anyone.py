@@ -66,7 +66,6 @@ def inference_matanyone(
     n_warmup=10,
 ):
     mask = preprocess_mask(mask)
-    vframes = vframes.to(device)
     mask = mask.to(device)
     length = vframes.shape[0]
     phas = [None] * length  # initialize output list
@@ -80,13 +79,13 @@ def inference_matanyone(
         repeated_frames = repeated_frames.to(device)
 
         output_prob = warming_up(mask, processor, n_warmup, repeated_frames)
-        phas[0] = processor.output_prob_to_mask(output_prob).unsqueeze(0)
+        phas[0] = processor.output_prob_to_mask(output_prob).unsqueeze(0).cpu()
 
         pbar = ProgressBar(length - 1)
         for ti in tqdm(range(1, length), desc="Forward Propagation"):
-            image = vframes[ti]
+            image = vframes[ti].to(device)
             output_prob = processor.step(image)
-            phas[ti] = processor.output_prob_to_mask(output_prob).unsqueeze(0)
+            phas[ti] = processor.output_prob_to_mask(output_prob).unsqueeze(0).cpu()
             pbar.update_absolute(ti - 1, length - 1)
 
     elif frame_index == length - 1:
@@ -98,15 +97,17 @@ def inference_matanyone(
         reversed_mask = mask  # mask for the last frame
 
         output_prob = warming_up(reversed_mask, processor, n_warmup, repeated_frames)
-        phas[frame_index] = processor.output_prob_to_mask(output_prob).unsqueeze(0)
+        phas[frame_index] = (
+            processor.output_prob_to_mask(output_prob).unsqueeze(0).cpu()
+        )
 
         pbar = ProgressBar(length - 1)
         for ti in tqdm(range(1, length), desc="Backward Propagation"):
-            image = reversed_vframes[ti]
+            image = reversed_vframes[ti].to(device)
             output_prob = processor.step(image)
-            phas[length - 1 - ti] = processor.output_prob_to_mask(
-                output_prob
-            ).unsqueeze(0)  # reverse index
+            phas[length - 1 - ti] = (
+                processor.output_prob_to_mask(output_prob).unsqueeze(0).cpu()
+            )  # reverse index
             pbar.update_absolute(ti - 1, length - 1)
 
     elif 0 < frame_index < length - 1:
@@ -117,14 +118,16 @@ def inference_matanyone(
 
         # Warm up at frame_index
         output_prob = warming_up(mask, processor, n_warmup, repeated_frames)
-        phas[frame_index] = processor.output_prob_to_mask(output_prob).unsqueeze(0)
+        phas[frame_index] = (
+            processor.output_prob_to_mask(output_prob).unsqueeze(0).cpu()
+        )
 
         # Forward Propagation (from frame_index + 1 to end)
         pbar_forward = ProgressBar(length - 1 - frame_index)
         for ti in tqdm(range(frame_index + 1, length), desc="Forward Propagation"):
-            image = vframes[ti]
+            image = vframes[ti].to(device)
             output_prob = processor.step(image)
-            phas[ti] = processor.output_prob_to_mask(output_prob).unsqueeze(0)
+            phas[ti] = processor.output_prob_to_mask(output_prob).unsqueeze(0).cpu()
             pbar_forward.update_absolute(
                 ti - (frame_index + 1), length - 1 - frame_index
             )
@@ -134,11 +137,11 @@ def inference_matanyone(
         reversed_vframes_backward = torch.flip(vframes[:frame_index], dims=[0])
         pbar_backward = ProgressBar(frame_index)
         for ti in tqdm(range(frame_index), desc="Backward Propagation"):
-            image = reversed_vframes_backward[ti]
+            image = reversed_vframes_backward[ti].to(device)
             output_prob = processor.step(image)
-            phas[frame_index - 1 - ti] = processor.output_prob_to_mask(
-                output_prob
-            ).unsqueeze(0)  # reverse index
+            phas[frame_index - 1 - ti] = (
+                processor.output_prob_to_mask(output_prob).unsqueeze(0).cpu()
+            )  # reverse index
             pbar_backward.update_absolute(ti, frame_index)
 
     return phas

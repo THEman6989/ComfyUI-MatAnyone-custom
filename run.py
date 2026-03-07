@@ -45,6 +45,18 @@ class MatAnyoneVideo:
                 "foreground_mask": ("IMAGE",),
                 "foreground_MASK": ("MASK",),
                 "solid_color": ("IMAGE",),
+                "max_internal_size": (
+                    "INT",
+                    {"default": -1, "min": -1, "step": 1},
+                ),
+                "max_mem_frames": (
+                    "INT",
+                    {"default": 5, "min": 1, "step": 1},
+                ),
+                "use_long_term": (
+                    "BOOLEAN",
+                    {"default": False},
+                ),
             },
         }
 
@@ -67,12 +79,19 @@ class MatAnyoneVideo:
         foreground_mask: torch.Tensor | None = None,
         foreground_MASK: torch.Tensor | None = None,
         solid_color: torch.Tensor | None = None,
+        max_internal_size: int = -1,
+        max_mem_frames: int = 5,
+        use_long_term: bool = False,
     ):
         mask = get_mask(foreground_mask, foreground_MASK)
         src_video = src_video.permute(0, 3, 1, 2)  # T CHW RGB
 
         # load MatAnyone model
         matanyone = get_matanyone_model(f"{base_dir}/{ckpt_path}")
+        matanyone.cfg.max_internal_size = max_internal_size
+        matanyone.cfg.max_mem_frames = max_mem_frames
+        matanyone.cfg.use_long_term = use_long_term
+
         processor = InferenceCore(matanyone, cfg=matanyone.cfg)
         phas = inference_matanyone(src_video, mask, processor, mask_frame, n_warmup)
         out_mask = torch.cat(phas).unsqueeze(1).permute(0, 2, 3, 1)
@@ -123,6 +142,18 @@ class MatAnyone2Video:
                     "INT",
                     {"default": 0, "min": 0, "step": 1},
                 ),
+                "max_internal_size": (
+                    "INT",
+                    {"default": -1, "min": -1, "step": 1},
+                ),
+                "max_mem_frames": (
+                    "INT",
+                    {"default": 5, "min": 1, "step": 1},
+                ),
+                "use_long_term": (
+                    "BOOLEAN",
+                    {"default": False},
+                ),
             },
         }
 
@@ -147,11 +178,18 @@ class MatAnyone2Video:
         solid_color: torch.Tensor | None = None,
         r_erode: int = 0,
         r_dilate: int = 0,
+        max_internal_size: int = -1,
+        max_mem_frames: int = 5,
+        use_long_term: bool = False,
     ):
         mask = get_mask(foreground_mask, foreground_MASK)
         src_video = src_video.permute(0, 3, 1, 2)  # T C H W RGB, [0, 1]
 
         matanyone2 = get_matanyone2_model_cached()
+        matanyone2.cfg.max_internal_size = max_internal_size
+        matanyone2.cfg.max_mem_frames = max_mem_frames
+        matanyone2.cfg.use_long_term = use_long_term
+
         processor = InferenceCore2(matanyone2, cfg=matanyone2.cfg)
         phas = inference_matanyone2(
             src_video,

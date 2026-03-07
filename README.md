@@ -18,7 +18,9 @@ checkpoint/
 
 ## Workflow
 
-[workflow/workflow_mat_anyone.json](workflow/workflow_mat_anyone.json)
+The extension now includes the `MatAnyone2Video` node, which runs the improved MatAnyoneV2 model for higher-quality and more robust video matting.
+
+**Workflow**: [workflow/workflow_mat_anyone.json](workflow/workflow_mat_anyone.json)
 
 ![matanyone_example](workflow/mat_anyone_preview.png)
 (Not a workflow-embedded image)
@@ -31,18 +33,16 @@ Inputs:
 - `mask_frame`: The input mask's index (defaults to 0). Support first (0), last and middle frame.
 - `n_warmup`: Number of iterations to warm up the model. Defaults to 10.
 
+**Memory Management Inputs**:
+
+- `max_internal_size` (optional): Resizes the internal processing resolution to save memory (e.g., 360, 480). Default is -1 (full resolution).
+- `max_mem_frames` (optional): The number of key frames kept in high-resolution working memory. Default is 5.
+- `use_long_term` (optional): Limits active memory scaling by compressing older frames into long-term prototype memories, preventing OOM over time. Default is False. (Useful for long videos)
+
 Your input mask won't actually be in the final matte. Instead, the warmup process generate a new input mask, which is then propagated throughout the video.
 
-### MatAnyone 2 Support
-
-The extension now includes the `MatAnyone2Video` node, which runs the improved MatAnyoneV2 model for higher-quality and more robust video matting.
-
-**Workflow V2**: [workflow/workflow_mat_anyone_v2.json](workflow/workflow_mat_anyone_v2.json)
-
-![matanyone_example](workflow/mat_anyone_preview_v2.png)
-(Not a workflow-embedded image)
-
 Additional Inputs for V2:
+
 - `r_erode` (optional): The radius for morphological erosion applied to the `foreground_mask` before processing (defaults to 0). Useful for refining rough masks.
 - `r_dilate` (optional): The radius for morphological dilation applied to the `foreground_mask` before processing (defaults to 0).
 
