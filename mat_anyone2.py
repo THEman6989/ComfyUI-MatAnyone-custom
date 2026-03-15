@@ -97,7 +97,7 @@ def inference_matanyone2(
             mask_t, processor, n_warmup, repeated_frames, pbar, 0, total_len
         )
         mask_out = processor.output_prob_to_mask(output_prob)
-        phas[0] = mask_out.unsqueeze(0).unsqueeze(0)
+        phas[0] = mask_out.unsqueeze(0).unsqueeze(0).cpu()
 
         for ti in range(1, length):
             image = vframes[ti].to(device)
