@@ -99,6 +99,38 @@ class MaskGuidanceTests(unittest.TestCase):
                 masks, 2, 0, 8, 8, mask_valid_threshold=0.02
             )
 
+    def test_mask_eroded_to_black_is_skipped_for_next_valid_mask(self):
+        masks = torch.zeros(2, 9, 9)
+        masks[0, 4, 4] = 1.0
+        masks[1, 2:7, 2:7] = 1.0
+
+        guidance, anchor = mat_anyone2.prepare_mask_guidance(
+            masks,
+            video_length=2,
+            mask_frame=0,
+            frame_height=9,
+            frame_width=9,
+            mask_mode="valid_per_frame_then_propagate",
+            r_erode=3,
+        )
+
+        self.assertEqual(anchor, 1)
+        self.assertIsNone(guidance[0])
+        self.assertGreater(guidance[1].max(), 0)
+
+    def test_single_mask_eroded_to_black_is_rejected(self):
+        mask = torch.zeros(1, 9, 9)
+        mask[0, 4, 4] = 1.0
+        with self.assertRaisesRegex(ValueError, "became empty after morphology"):
+            mat_anyone2.prepare_mask_guidance(
+                mask,
+                video_length=1,
+                mask_frame=0,
+                frame_height=9,
+                frame_width=9,
+                r_erode=3,
+            )
+
     def test_per_frame_guidance_is_injected_as_hw_tensor(self):
         class FakeProcessor:
             def __init__(self):

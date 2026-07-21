@@ -87,8 +87,8 @@ def prepare_mask_guidance(
 
     A one-item batch keeps legacy ``mask_frame`` placement. Multi-mask batches
     are frame-aligned from frame 0. A mask is valid only when at least one pixel
-    is greater than ``mask_valid_threshold``; fully black masks are therefore
-    treated as missing guidance.
+    is greater than ``mask_valid_threshold`` both before and after morphology;
+    fully black masks are therefore treated as missing guidance.
     """
     if mask_mode not in MASK_MODES:
         raise ValueError(f"Unknown mask_mode {mask_mode!r}; expected one of {MASK_MODES}")
@@ -126,13 +126,19 @@ def prepare_mask_guidance(
     for batch_index, frame_index in enumerate(frame_indices):
         mask = masks[batch_index]
         if mask.numel() and float(mask.max().item()) > mask_valid_threshold:
-            guidance[frame_index] = _refine_mask(mask, r_erode, r_dilate)
-            valid_indices.append(frame_index)
+            refined_mask = _refine_mask(mask, r_erode, r_dilate)
+            refined_threshold = mask_valid_threshold * 255.0
+            if (
+                refined_mask.numel()
+                and float(refined_mask.max().item()) > refined_threshold
+            ):
+                guidance[frame_index] = refined_mask
+                valid_indices.append(frame_index)
 
     if not valid_indices:
         raise ValueError(
-            "No valid mask found: every supplied mask is fully black or below "
-            f"mask_valid_threshold={mask_valid_threshold}"
+            "No valid mask found: every supplied mask is fully black, below "
+            f"mask_valid_threshold={mask_valid_threshold}, or became empty after morphology"
         )
 
     anchor_frame = valid_indices[0]
