@@ -1,4 +1,24 @@
-# ComfyUI-MatAnyone
+# ComfyUI-MatAnyone-custom
+
+Custom MatAnyone2 node for ComfyUI, based on
+[FuouM/ComfyUI-MatAnyone](https://github.com/FuouM/ComfyUI-MatAnyone).
+
+## MatAnyone2 batch-mask guidance
+
+The `MatAnyone2` node accepts either one mask or a frame-aligned mask batch.
+The original `MatAnyone` node is unchanged.
+
+- `first_valid_then_propagate` (default): scans the supplied batch, ignores fully
+  black masks, starts at the first valid mask, and propagates that one mask
+  through the whole video. A single mask still uses `mask_frame` for backwards
+  compatibility.
+- `valid_per_frame_then_propagate`: injects every valid mask at its corresponding
+  video frame. If a frame has a fully black mask, has no supplied mask, or was
+  missed by the detector, MatAnyone2 propagates from its previous memory instead.
+- `mask_valid_threshold`: optional maximum-pixel threshold used to classify a
+  mask as valid. The default `0.0` means only completely black masks are skipped.
+
+## Upstream documentation
 
 MatAnyone in ComfyUI (Remove background)
 

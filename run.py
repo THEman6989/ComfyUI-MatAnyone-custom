@@ -7,7 +7,7 @@
 
 from pathlib import Path
 
-from .utils import get_mask, get_screen
+from .utils import get_mask, get_mask_batch, get_screen
 
 base_dir = Path(__file__).resolve().parent
 import torch
@@ -154,6 +154,14 @@ class MatAnyone2Video:
                     "BOOLEAN",
                     {"default": False},
                 ),
+                "mask_mode": (
+                    ["first_valid_then_propagate", "valid_per_frame_then_propagate"],
+                    {"default": "first_valid_then_propagate"},
+                ),
+                "mask_valid_threshold": (
+                    "FLOAT",
+                    {"default": 0.0, "min": 0.0, "max": 1.0, "step": 0.001},
+                ),
             },
         }
 
@@ -181,8 +189,10 @@ class MatAnyone2Video:
         max_internal_size: int = -1,
         max_mem_frames: int = 5,
         use_long_term: bool = False,
+        mask_mode: str = "first_valid_then_propagate",
+        mask_valid_threshold: float = 0.0,
     ):
-        mask = get_mask(foreground_mask, foreground_MASK)
+        masks = get_mask_batch(foreground_mask, foreground_MASK)
         src_video = src_video.permute(0, 3, 1, 2)  # T C H W RGB, [0, 1]
 
         matanyone2 = get_matanyone2_model_cached()
@@ -193,12 +203,14 @@ class MatAnyone2Video:
         processor = InferenceCore2(matanyone2, cfg=matanyone2.cfg)
         phas = inference_matanyone2(
             src_video,
-            mask,
+            masks,
             processor,
             mask_frame=mask_frame,
             n_warmup=n_warmup,
             r_erode=r_erode,
             r_dilate=r_dilate,
+            mask_mode=mask_mode,
+            mask_valid_threshold=mask_valid_threshold,
         )
         out_mask = torch.cat(phas).permute(0, 2, 3, 1)  # T H W 1 -> T H W C
         out_mask_rgb = out_mask.repeat(1, 1, 1, 3)
